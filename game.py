@@ -9,13 +9,21 @@ hesitation_level = 0  # Accumulates every time player delays/waits
                        # 4-6: visible consequences
                        # 7+: irreversible loss of collective action window
 
+# Trajectory tracking (untuk mencegah stat-luck)
+first_hesitation_scene = None  # Pada scene berapa pemain pertama kali hesitate?
+hesitation_action_count = 0    # Berapa kali pemain pilih untuk hesitate/menunggu?
+
 def start_game():
     """Menginisialisasi game dan mereset semua variabel"""
     global knowledge, urgency, coalition, hesitation_level
+    global first_hesitation_scene, hesitation_action_count
+    
     knowledge = 0
     urgency = 0
     coalition = 0
     hesitation_level = 0
+    first_hesitation_scene = None
+    hesitation_action_count = 0
     
     print("\n" + "="*50)
     print("FIRMAMEN")
@@ -28,7 +36,7 @@ def start_game():
 
 def scene_1():
     """Scene 1: Kelas Astronomi Matematika"""
-    global knowledge, urgency, coalition, hesitation_level
+    global knowledge, urgency, coalition, hesitation_level, first_hesitation_scene
     
     print("\n" + "="*50)
     print("SCENE 1: Kelas Astronomi Matematika")
@@ -49,7 +57,8 @@ def scene_1():
         print("\nAnda membela kehendak Huitzilopochtli dengan vokal.")
     elif choice == "2":
         knowledge += 2
-        hesitation_level += 1  # Mulai menunda
+        hesitation_level += 1
+        first_hesitation_scene = 1  # Track: pemain hesitate sejak Scene 1
         print("\nAnda memilih untuk diam dan mengamati data dengan seksama.")
         print("Tapi ada sesuatu dalam bola matanya profesor—keputusasaan.")
     elif choice == "3":
@@ -65,6 +74,7 @@ def scene_1():
 def scene_2():
     """Scene 2: Membaca berkas Profesor Skemma"""
     global knowledge, urgency, coalition, hesitation_level
+    global first_hesitation_scene, hesitation_action_count
     
     print("\n" + "="*50)
     print("SCENE 2: Membaca Berkas Profesor Skemma")
@@ -101,7 +111,13 @@ def scene_2():
     elif choice == "3":
         knowledge += 1
         urgency += random.randint(0, 1)
-        hesitation_level += 2  # Pilihan menunggu lagi += lebih banyak
+        hesitation_level += 2
+        hesitation_action_count += 1  # Track: pilihan hesitate lagi
+        
+        # Track: jika belum hesitate di Scene 1, track sekarang
+        if first_hesitation_scene is None:
+            first_hesitation_scene = 2
+        
         print("\nAnda menyimpan data dan melanjutkan observasi.")
         
         if hesitation_level >= 6:
@@ -118,6 +134,7 @@ def scene_2():
 def scene_3():
     """Scene 3: Menentukan strategi menghadapi Gereja"""
     global knowledge, urgency, coalition, hesitation_level
+    global first_hesitation_scene, hesitation_action_count
     
     print("\n" + "="*50)
     print("SCENE 3: Menentukan Strategi Menghadapi Gereja")
@@ -126,7 +143,7 @@ def scene_3():
     print("Anda harus memilih bagaimana mengkomunikasikan temuan kepada dunia,")
     print("berhadapan dengan tekanan Gereja yang semakin besar.")
     
-    # Narrative escalation based on hesitation
+    # Narrative escalation based on hesitation trajectory
     if hesitation_level >= 7:
         print("\n*** PERINGATAN TERSEMBUNYI ***")
         print("Aliansi Anda mulai runtuh. Orang-orang takut berbicara.")
@@ -135,7 +152,7 @@ def scene_3():
     elif hesitation_level >= 5:
         print("\nAnda dengar hari ini: tiga orang baru dieksekusi.")
         print("Alasan mereka yang diberitahu: 'Kecurigaan pada bintang.'")
-        print("Aliansi Anda menunggu kepemimpinan.")
+        print("\nAliansi Anda menunggu kepemimpinan. Atau mereka akan pergi.")
     else:
         print("\nAnda masih memiliki kepercayaan dari komunitas.")
         print("Mereka menunggu keputusan Anda.")
@@ -160,12 +177,14 @@ def scene_3():
         knowledge += 2
         urgency -= 2
         hesitation_level += 3  # Pilihan menunggu paling berat
+        hesitation_action_count += 1  # Track: pilihan hesitate lagi
+        
         print("\nAnda memilih untuk menunggu konsistensi data yang sempurna.")
         
         if hesitation_level >= 8:
             print("\nSambil Anda menunggu, lebih banyak orang menghilang.")
             print("Beberapa aliansi Anda memilih untuk mundur—terlalu lama.")
-            coalition -= random.randint(1, 2)  # Kehilangan aliansi
+            coalition = max(0, coalition - random.randint(1, 2))
     else:
         print("\nPilihan tidak valid. Menggunakan pilihan default.")
         knowledge += 2
@@ -175,6 +194,7 @@ def scene_3():
 def scene_4():
     """Scene 4: Titik tidak bisa kembali"""
     global knowledge, urgency, coalition, hesitation_level
+    global first_hesitation_scene, hesitation_action_count
     
     print("\n" + "="*50)
     print("SCENE 4: Titik Tidak Bisa Kembali")
@@ -183,59 +203,102 @@ def scene_4():
     print("Cahaya patung Huitzilopochtli tidak konsisten, berkedip-kedip.")
     print("Anda menyadari bahwa sistem yang mempertahankan ilusi runtuh.")
     
-    # Critical narrative branch based on hesitation_level
+    # CRITICAL NARRATIVE LOCK based on hesitation trajectory
     if hesitation_level >= 8:
-        print("\n*** TITIK TIDAK BISA KEMBALI TELAH TERLAMPAUI ***")
+        print("\n*** JENDELA WAKTU SUDAH TERTUTUP ***")
         print("Waktu Anda untuk mobilisasi aksi kolektif sudah hilang.")
         print("Aliansi Anda telah bercerai. Banyak yang sudah mati.")
-        print("Dunia akan berubah, tetapi Anda akan menjadi saksi—bukan pemimpin.")
+        print("Tidak ada yang lagi mendengarkan Anda. Pilihan kolektif sudah tidak ada.")
+        print("\nApa yang akan Anda lakukan sekarang?")
+        print("\n1. Bertindak cepat sendiri")
+        print("2. Tidak melakukan apa-apa—biarkan sistem runtuh sendiri")
+        
+        choice = input("\nPilihan Anda (1-2): ").strip()
+        
+        if choice == "1":
+            urgency += 3
+            knowledge -= 1
+            print("\nAnda bertindak cepat sendiri, tapi tanpa dukungan.")
+        elif choice == "2":
+            print("\nAnda memilih untuk tidak melakukan apa-apa lagi.")
+            hesitation_level += 3
+        else:
+            print("\nPilihan tidak valid. Anda tidak melakukan apa-apa.")
+            hesitation_level += 2
+    
     elif hesitation_level >= 6:
         print("\n*** PERINGATAN NARATIF ***")
         print("Waktu Anda untuk tindakan kolektif hampir usai.")
         print("Aliansi Anda mulai kehilangan kepercayaan diri.")
-        print("Satu pilihan tidak tepat lagi dan Anda kehilangan segalanya.")
+        print("Jika Anda menunda lagi, semua akan hilang.")
+        print("\nApa yang akan Anda lakukan dalam momen kritis ini?")
+        print("\n1. Bertindak cepat terhadap patung")
+        print("2. Mengkoordinasikan aksi bertahap lintas kelompok")
+        print("3. Menunggu sampai semua argumen lengkap")
+        
+        choice = input("\nPilihan Anda (1-3): ").strip()
+        
+        if choice == "1":
+            urgency += 3
+            knowledge -= 1
+            print("\nAnda bertindak cepat terhadap patung.")
+        elif choice == "2":
+            coalition += 3
+            urgency += 1
+            print("\nAnda mengkoordinasikan aksi bertahap lintas kelompok.")
+        elif choice == "3":
+            knowledge += 2
+            urgency -= 3
+            hesitation_level += 3
+            print("\nAnda memilih untuk menunggu sampai semua argumen lengkap.")
+            
+            if hesitation_level >= 10:
+                print("\nTapi waktu sudah benar-benar habis.")
+        else:
+            print("\nPilihan tidak valid. Menggunakan pilihan default.")
+            knowledge += 2
+    
     else:
         print("\nAnda masih memiliki aliansi dan kepercayaan dari komunitas.")
         print("Jendela waktu untuk tindakan kolektif masih terbuka.")
-    
-    print("\nApa yang akan Anda lakukan dalam momen kritis ini?")
-    print("\n1. Bertindak cepat terhadap patung")
-    print("2. Mengkoordinasikan aksi bertahap lintas kelompok")
-    print("3. Menunggu sampai semua argumen lengkap")
-    
-    choice = input("\nPilihan Anda (1-3): ").strip()
-    
-    if choice == "1":
-        urgency += 3
-        knowledge -= 1
-        print("\nAnda bertindak cepat terhadap patung.")
-    elif choice == "2":
-        coalition += 3
-        urgency += 1
-        print("\nAnda mengkoordinasikan aksi bertahap lintas kelompok.")
-    elif choice == "3":
-        knowledge += 2
-        urgency -= 3
-        hesitation_level += 3  # Final wait—too late
-        print("\nAnda memilih untuk menunggu sampai semua argumen lengkap.")
+        print("\nApa yang akan Anda lakukan dalam momen kritis ini?")
+        print("\n1. Bertindak cepat terhadap patung")
+        print("2. Mengkoordinasikan aksi bertahap lintas kelompok")
+        print("3. Menunggu sampai semua argumen lengkap")
         
-        if hesitation_level >= 10:
-            print("\nTapi waktu sudah habis. Sistem runtuh dengan cara sendiri,")
-            print("dan Anda hanya bisa menyaksikan.")
-    else:
-        print("\nPilihan tidak valid. Menggunakan pilihan default.")
-        knowledge += 2
+        choice = input("\nPilihan Anda (1-3): ").strip()
+        
+        if choice == "1":
+            urgency += 3
+            knowledge -= 1
+            print("\nAnda bertindak cepat terhadap patung.")
+        elif choice == "2":
+            coalition += 3
+            urgency += 1
+            print("\nAnda mengkoordinasikan aksi bertahap lintas kelompok.")
+        elif choice == "3":
+            knowledge += 2
+            urgency -= 3
+            hesitation_level += 3
+            hesitation_action_count += 1  # Track: pilihan hesitate lagi
+            print("\nAnda memilih untuk menunggu sampai semua argumen lengkap.")
+        else:
+            print("\nPilihan tidak valid. Menggunakan pilihan default.")
+            knowledge += 2
     
     check_ending()
 
 def check_ending():
     """
-    Menentukan ending berdasarkan distribusi keputusan, bukan optimasi stat.
+    Ending logic yang bergantung pada TRAJECTORY keputusan, bukan final stat.
     
-    Thesis: Kebenaran tanpa tindakan tepat waktu adalah kerugian.
-    Urgency, knowledge, dan coalition harus diikuti dengan tatanan yang benar.
+    Filosofi:
+    - TRUE ENDING = "Aku tahu ini salah, dari awal hesitate, terus hesitate"
+    - GOOD ENDING = "Aku berkomitmen sejak awal dan bertindak bersama"
+    - BAD ENDING = "Aku gagal dalam makna existensial"
     """
     global knowledge, urgency, coalition, hesitation_level
+    global first_hesitation_scene, hesitation_action_count
     
     print("\n" + "="*50)
     print("ENDING")
@@ -244,10 +307,12 @@ def check_ending():
     # Narasi universal pembuka
     print("Cahaya patung itu bersinar sekali lagi—lalu gelap sama sekali.\n")
     
-    # TRUE ENDING: Knowledge tinggi + Hesitation tinggi + Aksi kolektif gagal
-    # Artinya: pemain tahu segalanya, tapi aksi kolektif sudah terlalu lambat
-    # Dunia eventually runtuh, kebenaran terungkap, tapi korban sudah jatuh
-    if knowledge >= 6 and hesitation_level >= 7 and coalition < 5:
+    # TRUE ENDING: Trajectory-based = hesitate sejak awal, terus hesitate, tahu segalanya
+    # "Aku melihat masalahnya sejak awal, pilih hemat, tapi terus hesitate"
+    if (knowledge >= 6 and hesitation_level >= 7 and 
+        first_hesitation_scene is not None and first_hesitation_scene <= 2 and
+        hesitation_action_count >= 2):
+        
         print("KEBENARAN YANG TERLAMBAT")
         print("-" * 30)
         print("\nLangit palsu terdisintegrasi dengan sendirinya—")
@@ -261,9 +326,11 @@ def check_ending():
         print("yang masih hidup untuk mendengarkan.")
         print("\n[Pengetahuan tanpa ketepatan waktu adalah bentuk kebohongan lain.]")
     
-    # GOOD ENDING: Keseimbangan—urgency + coalition tinggi, hesitation rendah
-    # Sky runtuh perlahan, ada resistance, tapi komunitas bergerak bersama
-    elif knowledge >= 5 and urgency >= 5 and coalition >= 5 and hesitation_level <= 5:
+    # GOOD ENDING: Early commitment, tidak hesitate banyak
+    # "Aku bergerak cepat sejak awal, tidak terlalu hesitate"
+    elif (knowledge >= 5 and urgency >= 5 and coalition >= 5 and 
+          hesitation_action_count <= 1):  # Maksimal 1 hesitation action
+        
         print("LANGIT YANG REWEL")
         print("-" * 30)
         print("\nLangit palsu tidak langsung runtuh.")
@@ -276,8 +343,9 @@ def check_ending():
         print("Kepercayaan terhadap institusi hancur berkeping-keping.")
         print("Sebagian akan membutuhkan bertahun-tahun untuk pulih.")
         print("\nTetapi Anda berhasil. Tidak sempurna. Tidak bersih.")
-        print("Tetapi bersama, Anda memilih untuk bertindak.")
-        print("\n[Kemenangan yang berdebu lebih bermakna daripada keputusan sempurna yang terpurbait.]")
+        print("Tetapi bersama, Anda memilih untuk bertindak—ketika masih ada waktu.")
+        print("\n[Kemenangan yang berdebu lebih bermakna daripada keputusan sempurna")
+        print(" yang terpurbait.]")
     
     # BAD ENDING: Semua skenario lainnya
     # Gereja bertahan, ilusi terus berlanjut
